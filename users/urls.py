@@ -1,9 +1,6 @@
 from django.urls import path
 from users import views
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
+from rest_framework_simplejwt.views import (TokenObtainPairView, TokenRefreshView,)
 
 
 app_name = 'users'
@@ -26,10 +23,10 @@ urlpatterns = [
     path('activate/<uidb64>/<token>/', views.UserActivate.as_view(), name='activate'),
 
     # 마이 페이지
-    path('mypage/', views.MyPageView.as_view(), name='my_page_view'),
+    path('mypage/<int:user_id>/', views.MyPageView.as_view(), name='my_page_view'),
 
     # 피드 페이지
-    path('feed/<str:nickname>/', views.UserFeedPageView.as_view(), name='feed_page_view'),
+    path('feed/<int:user_id>/', views.UserFeedPageView.as_view(), name='feed_page_view'),
 
     # 팔로우
     path('follow/<int:user_id>/', views.FollowView.as_view(), name='follow_view'),

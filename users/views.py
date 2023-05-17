@@ -109,28 +109,34 @@ class MyPageView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     # 마이 페이지
-    def get(self, request):
-        user_profile = get_object_or_404(UserProfile)
-        serializer = MyPageSerializer(user_profile)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def get(self, request, user_id):
+        user_profile = get_object_or_404(UserProfile, id=user_id)
+        if request.user.email == user_profile.user.email:
+            serializer = MyPageSerializer(user_profile)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response("권한이 없습니다", status=status.HTTP_403_FORBIDDEN)
 
     # 마이 페이지 편집
-    def put(self, request):
-        user_profile = get_object_or_404(UserProfile)
-        serializer = MyPageUpdateSerializer(user_profile, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "프로필이 수정 되었습니다!"}, status=status.HTTP_200_OK)
+    def put(self, request, user_id):
+        user_profile = get_object_or_404(UserProfile, id=user_id)
+        if request.user.email == user_profile.user.email:
+            serializer = MyPageUpdateSerializer(user_profile, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({"message": "프로필이 수정 되었습니다!"}, status=status.HTTP_200_OK)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response("권한이 없습니다", status=status.HTTP_403_FORBIDDEN)
 
 
 class UserFeedPageView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     # 사용자 피드 페이지
-    def get(self, request, nickname):
-        user_profile = get_object_or_404(UserProfile, nickname=nickname)
+    def get(self, request, user_id):
+        user_profile = get_object_or_404(UserProfile, id=user_id)
         serializer = UserFeedPageSerializer(user_profile)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -141,12 +147,12 @@ class FollowView(APIView):
         you = get_object_or_404(User, id=user_id)
         me = request.user
         #-----수정 - 팔로우 하려는 사람이 본인이라면 못하게 기능 수정------------------------이주한--- 
-        if me == you.email:
-            if me in you.followers.all():
-                you.followers.remove(me)
+        if me != you:
+            if me.id in you.user_profile.followers.all():
+                you.user_profile.followers.remove(me.id)
                 return Response("unfollow했습니다.", status=status.HTTP_200_OK)
             else:
-                you.followers.add(me)
+                you.user_profile.followers.add(me.id)
                 return Response("follow했습니다.", status=status.HTTP_200_OK)
         else:
             return Response('본인을 팔로우 하는 사람이 어딨어?!', status=status.HTTP_400_BAD_REQUEST)

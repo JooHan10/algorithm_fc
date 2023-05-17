@@ -3,6 +3,7 @@ from users.models import User, UserProfile
 from users.validators import password_validator, password_pattern, user_name_validator, nickname_validator
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from posts.serializers import PostSerializer
+from posts.models import Post
 from django.contrib.auth.hashers import check_password
 
 from django.utils.http import urlsafe_base64_encode
@@ -137,6 +138,7 @@ class MyPageSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = (
             "id",
+            "user_id",
             "nickname",
             "profile_image",
             "email",
@@ -150,13 +152,21 @@ class MyPageSerializer(serializers.ModelSerializer):
 
 # 사용자 피드 페이지 serializer
 class UserFeedPageSerializer(serializers.ModelSerializer):
-    followings = MyPageSerializer(many=True)
+    followings = MyPageSerializer(many=True) # many=True의 필요성 점검
     followers = MyPageSerializer(many=True)
-    user_posts = PostSerializer(many=True, read_only=True)
+    # user_posts = PostSerializer(many=True, read_only=True)
+    user_posts = serializers.SerializerMethodField()
     user_id = serializers.SerializerMethodField()
 
     def get_user_id(self, obj):
         return obj.user.id
+
+    def get_user_posts(self, obj):
+        user_id = obj.user.id
+        posts = Post.objects.filter(author_id=user_id)
+        posts = PostSerializer(posts, many=True).data
+        return posts
+
 
     class Meta:
         model = UserProfile
@@ -183,6 +193,8 @@ class MyPageUpdateSerializer(serializers.ModelSerializer):
             "nickname",
             "profile_image",
             "introduction",
+            "age",
+            "gender",
         )
         extra_kwargs = {
             "nickname": {
@@ -212,6 +224,8 @@ class MyPageUpdateSerializer(serializers.ModelSerializer):
         instance.nickname = validated_data.get("nickname", instance.nickname)
         instance.profile_image = validated_data.get("profile_image", instance.profile_image)
         instance.introduction = validated_data.get("introduction", instance.introduction)
+        instance.age = validated_data.get("age", instance.age)
+        instance.gender = validated_data.get("gender", instance.gender)
         instance.save()
 
         return instance
